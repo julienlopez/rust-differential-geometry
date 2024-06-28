@@ -1,0 +1,19 @@
+[package]
+name = "rust-differential-geometry"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+path = "src/lib.rs"
+name = "rust_differential_geometry"
+
+[[bin]]
+path = "src/main.rs"
+name = "exe-rust-differential-geometry"
+
+[dependencies]
+ndarray = "0.15.6"
+pest = "2.7.10"
+pest_derive = "2.7.10"
