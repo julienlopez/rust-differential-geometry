@@ -1,10 +1,12 @@
+use std::collections::HashSet;
+
 use rust_differential_geometry::expression::{BinaryOperation, Expression, Function};
 use rust_differential_geometry::surface::Surface;
 
 #[test]
 fn it_adds_two() {
     let torus = Surface::from_embedding(
-        vec!['u', 'v'],
+        HashSet::from(['u', 'v']),
         vec![Expression::Operation {
             operation: BinaryOperation::Multiplication,
             left_value: Box::new(Expression::Function {
@@ -41,4 +43,6 @@ fn it_adds_two() {
             }),
         }],
     );
+    assert_eq!(torus.surface_variables, HashSet::from(['u', 'v']));
+    assert_eq!(torus.parametric_variables, HashSet::from(['r', 'R']));
 }

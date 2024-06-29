@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 pub type Variable = char;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -153,6 +155,25 @@ fn simplify_expression(expression: Expression) -> Expression {
             right_value,
         } => simplify_operation(operation, *left_value, *right_value),
         _ => expression,
+    }
+}
+
+impl Expression {
+    pub fn variables(&self) -> HashSet<Variable> {
+        match &self {
+            Expression::Constant(_) => HashSet::<Variable>::new(),
+            Expression::Monomial { variable, .. } => HashSet::from([*variable]),
+            Expression::Function { expression, .. } => expression.variables(),
+            Expression::Operation {
+                left_value,
+                right_value,
+                ..
+            } => {
+                let mut left_vars = left_value.variables();
+                left_vars.extend(right_value.variables());
+                left_vars
+            }
+        }
     }
 }
 
