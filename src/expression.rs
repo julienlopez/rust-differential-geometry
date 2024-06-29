@@ -1,6 +1,4 @@
-use pest::pratt_parser::Op;
-
-type Variable = char;
+pub type Variable = char;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum BinaryOperation {
