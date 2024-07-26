@@ -3,17 +3,21 @@ use std::collections::HashSet;
 pub type Variable = char;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum BinaryOperation {
+pub enum BinaryOperationType {
     Addition,
     Substraction,
     Multiplication,
     Division,
 }
 
-fn identity_element(operation: BinaryOperation) -> Expression {
+fn identity_element(operation: BinaryOperationType) -> Expression {
     match operation {
-        BinaryOperation::Addition | BinaryOperation::Substraction => Expression::Constant(0.),
-        BinaryOperation::Multiplication | BinaryOperation::Division => Expression::Constant(1.),
+        BinaryOperationType::Addition | BinaryOperationType::Substraction => {
+            Expression::Constant(0.)
+        }
+        BinaryOperationType::Multiplication | BinaryOperationType::Division => {
+            Expression::Constant(1.)
+        }
     }
 }
 
@@ -21,6 +25,13 @@ fn identity_element(operation: BinaryOperation) -> Expression {
 pub enum Function {
     Sine,
     Cosine,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BinaryOperation {
+    pub operation: BinaryOperationType,
+    pub left_value: Box<Expression>,
+    pub right_value: Box<Expression>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -31,11 +42,7 @@ pub enum Expression {
         variable: Variable,
         power: u8,
     },
-    Operation {
-        operation: BinaryOperation,
-        left_value: Box<Expression>,
-        right_value: Box<Expression>,
-    },
+    Operation(BinaryOperation),
     Function {
         function: Function,
         expression: Box<Expression>,
@@ -63,31 +70,28 @@ fn derive_monomial(
     }
 }
 
-fn derive_operation(
-    derivation_variable: Variable,
-    operation: BinaryOperation,
-    left_value: &Box<Expression>,
-    right_value: &Box<Expression>,
-) -> Expression {
-    match operation {
-        BinaryOperation::Addition | BinaryOperation::Substraction => Expression::Operation {
-            operation: operation,
-            left_value: Box::new(derive(&left_value, derivation_variable)),
-            right_value: Box::new(derive(&right_value, derivation_variable)),
-        },
-        BinaryOperation::Multiplication => Expression::Operation {
-            operation: BinaryOperation::Addition,
-            left_value: Box::new(Expression::Operation {
-                operation: BinaryOperation::Multiplication,
-                left_value: Box::new(derive(&left_value, derivation_variable)),
-                right_value: Box::new(*right_value.clone()),
-            }),
-            right_value: Box::new(Expression::Operation {
-                operation: BinaryOperation::Multiplication,
-                left_value: Box::new(derive(&right_value, derivation_variable)),
-                right_value: Box::new(*left_value.clone()),
-            }),
-        },
+fn derive_operation(derivation_variable: Variable, operation: &BinaryOperation) -> Expression {
+    match operation.operation {
+        BinaryOperationType::Addition | BinaryOperationType::Substraction => {
+            Expression::Operation(BinaryOperation {
+                operation: operation.operation,
+                left_value: Box::new(derive(&operation.left_value, derivation_variable)),
+                right_value: Box::new(derive(&operation.right_value, derivation_variable)),
+            })
+        }
+        BinaryOperationType::Multiplication => Expression::Operation(BinaryOperation {
+            operation: BinaryOperationType::Addition,
+            left_value: Box::new(Expression::Operation(BinaryOperation {
+                operation: BinaryOperationType::Multiplication,
+                left_value: Box::new(derive(&operation.left_value, derivation_variable)),
+                right_value: Box::new(*operation.right_value.clone()),
+            })),
+            right_value: Box::new(Expression::Operation(BinaryOperation {
+                operation: BinaryOperationType::Multiplication,
+                left_value: Box::new(derive(&operation.right_value, derivation_variable)),
+                right_value: Box::new(*operation.left_value.clone()),
+            })),
+        }),
         _ => unimplemented!(),
     }
 }
@@ -105,16 +109,9 @@ pub fn derive(expression: &Expression, derivation_variable: Variable) -> Express
             variable,
             power,
         )),
-        Expression::Operation {
-            operation,
-            left_value,
-            right_value,
-        } => simplify_expression(derive_operation(
-            derivation_variable,
-            *operation,
-            left_value,
-            right_value,
-        )),
+        Expression::Operation(operation) => {
+            simplify_expression(derive_operation(derivation_variable, operation))
+        }
         _ => unimplemented!(),
     }
 }
@@ -143,48 +140,47 @@ fn simplify_function(function: Function, expression: Expression) -> Option<Expre
     }
 }
 
-fn simplify_operation(
-    operation: BinaryOperation,
-    left_value: Expression,
-    right_value: Expression,
-) -> Option<Expression> {
+fn simplify_operation(operation: BinaryOperation) -> Option<Expression> {
     println!(
         "simplify_operation({:?}, {:?}, {:?})",
-        operation, &left_value, &right_value
+        operation, &operation.left_value, &operation.right_value
     );
-    if left_value == identity_element(operation) {
-        return Some(right_value);
+    if *operation.left_value == identity_element(operation.operation) {
+        return Some(*operation.right_value);
     }
-    if right_value == identity_element(operation) {
-        return Some(left_value);
+    if *operation.right_value == identity_element(operation.operation) {
+        return Some(*operation.left_value);
     }
-    if operation == BinaryOperation::Multiplication
-        && (left_value == Expression::Constant(0.) || right_value == Expression::Constant(0.))
+    if operation.operation == BinaryOperationType::Multiplication
+        && (*operation.left_value == Expression::Constant(0.)
+            || *operation.right_value == Expression::Constant(0.))
     {
         return Some(Expression::Constant(0.));
     }
-    if operation == BinaryOperation::Division && left_value == Expression::Constant(0.) {
+    if operation.operation == BinaryOperationType::Division
+        && *operation.left_value == Expression::Constant(0.)
+    {
         return Some(Expression::Constant(0.));
     }
     match (
-        do_simplify_expression(left_value.clone()),
-        do_simplify_expression(right_value.clone()),
+        do_simplify_expression(*operation.left_value.clone()),
+        do_simplify_expression(*operation.right_value.clone()),
     ) {
-        (Some(left), Some(right)) => Some(Expression::Operation {
-            operation: operation,
+        (Some(left), Some(right)) => Some(Expression::Operation(BinaryOperation {
+            operation: operation.operation,
             left_value: Box::new(left),
             right_value: Box::new(right),
-        }),
-        (Some(left), None) => Some(Expression::Operation {
-            operation: operation,
+        })),
+        (Some(left), None) => Some(Expression::Operation(BinaryOperation {
+            operation: operation.operation,
             left_value: Box::new(left),
-            right_value: Box::new(right_value),
-        }),
-        (None, Some(right)) => Some(Expression::Operation {
-            operation: operation,
-            left_value: Box::new(left_value),
+            right_value: Box::new(*operation.right_value),
+        })),
+        (None, Some(right)) => Some(Expression::Operation(BinaryOperation {
+            operation: operation.operation,
+            left_value: Box::new(*operation.left_value),
             right_value: Box::new(right),
-        }),
+        })),
         (None, None) => None,
     }
 }
@@ -195,11 +191,7 @@ fn do_simplify_expression(expr: Expression) -> Option<Expression> {
             function,
             expression,
         } => simplify_function(function, *expression),
-        Expression::Operation {
-            operation,
-            left_value,
-            right_value,
-        } => simplify_operation(operation, *left_value, *right_value),
+        Expression::Operation(operation) => simplify_operation(operation),
         _ => None,
     }
 }
@@ -218,13 +210,9 @@ impl Expression {
             Expression::Constant(_) => HashSet::<Variable>::new(),
             Expression::Monomial { variable, .. } => HashSet::from([*variable]),
             Expression::Function { expression, .. } => expression.variables(),
-            Expression::Operation {
-                left_value,
-                right_value,
-                ..
-            } => {
-                let mut left_vars = left_value.variables();
-                left_vars.extend(right_value.variables());
+            Expression::Operation(operation) => {
+                let mut left_vars = operation.left_value.variables();
+                left_vars.extend(operation.right_value.variables());
                 left_vars
             }
         }
@@ -296,24 +284,24 @@ mod tests {
             variable: 'x',
             power: 2,
         };
-        let sum = Expression::Operation {
-            operation: BinaryOperation::Addition,
+        let sum = Expression::Operation(BinaryOperation {
+            operation: BinaryOperationType::Addition,
             left_value: Box::new(left_monomial.clone()),
             right_value: Box::new(right_monomial.clone()),
-        };
+        });
 
         assert_eq!(derive(&sum, 'y'), Expression::Constant(0.));
         assert_eq!(
             derive(&sum, 'x'),
-            Expression::Operation {
-                operation: BinaryOperation::Addition,
+            Expression::Operation(BinaryOperation {
+                operation: BinaryOperationType::Addition,
                 left_value: Box::new(Expression::Constant(5.)),
                 right_value: Box::new(Expression::Monomial {
                     factor: 6.,
                     variable: 'x',
                     power: 1
                 })
-            }
+            })
         )
     }
 
@@ -329,11 +317,11 @@ mod tests {
             variable: 'x',
             power: 2,
         };
-        let product = Expression::Operation {
-            operation: BinaryOperation::Multiplication,
+        let product = Expression::Operation(BinaryOperation {
+            operation: BinaryOperationType::Multiplication,
             left_value: Box::new(left_monomial.clone()),
             right_value: Box::new(right_monomial.clone()),
-        };
+        });
 
         assert_eq!(derive(&product, 'y'), Expression::Constant(0.));
         // assert_eq!(
@@ -372,25 +360,25 @@ mod tests {
         );
 
         let value = Expression::Constant(5.);
-        let expr = Expression::Operation {
-            operation: BinaryOperation::Addition,
+        let expr = Expression::Operation(BinaryOperation {
+            operation: BinaryOperationType::Addition,
             left_value: Box::new(value.clone()),
             right_value: Box::new(Expression::Constant(0.)),
-        };
+        });
         assert_eq!(simplify_expression(expr), value);
 
-        let expr = Expression::Operation {
-            operation: BinaryOperation::Multiplication,
+        let expr = Expression::Operation(BinaryOperation {
+            operation: BinaryOperationType::Multiplication,
             left_value: Box::new(value.clone()),
             right_value: Box::new(Expression::Constant(1.)),
-        };
+        });
         assert_eq!(simplify_expression(expr), value);
 
-        let expr = Expression::Operation {
-            operation: BinaryOperation::Multiplication,
+        let expr = Expression::Operation(BinaryOperation {
+            operation: BinaryOperationType::Multiplication,
             left_value: Box::new(value.clone()),
             right_value: Box::new(Expression::Constant(0.)),
-        };
+        });
         assert_eq!(simplify_expression(expr), Expression::Constant(0.));
 
         // assert_eq!(
