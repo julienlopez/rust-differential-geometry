@@ -162,6 +162,33 @@ fn simplify_operation(operation: BinaryOperation) -> Option<Expression> {
     {
         return Some(Expression::Constant(0.));
     }
+    if operation.operation == BinaryOperationType::Multiplication {
+        match (&*operation.left_value, &*operation.right_value) {
+            (
+                &Expression::Monomial {
+                    factor,
+                    variable,
+                    power,
+                },
+                &Expression::Constant(constant),
+            )
+            | (
+                &Expression::Constant(constant),
+                &Expression::Monomial {
+                    factor,
+                    variable,
+                    power,
+                },
+            ) => {
+                return Some(Expression::Monomial {
+                    factor: factor * constant,
+                    variable: variable,
+                    power: power,
+                })
+            }
+            (_, _) => {}
+        }
+    }
     match (
         do_simplify_expression(*operation.left_value.clone()),
         do_simplify_expression(*operation.right_value.clone()),
@@ -324,14 +351,14 @@ mod tests {
         });
 
         assert_eq!(derive(&product, 'y'), Expression::Constant(0.));
-        // assert_eq!(
-        //     derive(&product, 'x'),
-        //     Expression::Monomial {
-        //         factor: 45.,
-        //         variable: 'x',
-        //         power: 2
-        //     }
-        // );
+        assert_eq!(
+            derive(&product, 'x'),
+            Expression::Monomial {
+                factor: 45.,
+                variable: 'x',
+                power: 2
+            }
+        );
     }
 
     #[test]
@@ -380,39 +407,42 @@ mod tests {
             right_value: Box::new(Expression::Constant(0.)),
         });
         assert_eq!(simplify_expression(expr), Expression::Constant(0.));
+    }
 
-        // assert_eq!(
-        //     simplify_expression(Expression::Operation {
-        //         operation: BinaryOperation::Multiplication,
-        //         left_value: Box::new(Expression::Constant(5.)),
-        //         right_value: Box::new(Expression::Monomial {
-        //             factor: 3.,
-        //             variable: 'x',
-        //             power: 2
-        //         })
-        //     }),
-        //     Expression::Monomial {
-        //         factor: 15.,
-        //         variable: 'x',
-        //         power: 2
-        //     }
-        // );
+    #[test]
+    fn test_simplify_multiplication_between_a_constant_and_a_monomial() {
+        assert_eq!(
+            simplify_expression(Expression::Operation(BinaryOperation {
+                operation: BinaryOperationType::Multiplication,
+                left_value: Box::new(Expression::Constant(5.)),
+                right_value: Box::new(Expression::Monomial {
+                    factor: 3.,
+                    variable: 'x',
+                    power: 2
+                })
+            })),
+            Expression::Monomial {
+                factor: 15.,
+                variable: 'x',
+                power: 2
+            }
+        );
 
-        // assert_eq!(
-        //     simplify_expression(Expression::Operation {
-        //         operation: BinaryOperation::Multiplication,
-        //         left_value: Box::new(Expression::Monomial {
-        //             factor: 3.,
-        //             variable: 'x',
-        //             power: 2
-        //         }),
-        //         right_value: Box::new(Expression::Constant(5.)),
-        //     }),
-        //     Expression::Monomial {
-        //         factor: 15.,
-        //         variable: 'x',
-        //         power: 2
-        //     }
-        // );
+        assert_eq!(
+            simplify_expression(Expression::Operation(BinaryOperation {
+                operation: BinaryOperationType::Multiplication,
+                left_value: Box::new(Expression::Monomial {
+                    factor: 3.,
+                    variable: 'x',
+                    power: 2
+                }),
+                right_value: Box::new(Expression::Constant(5.)),
+            })),
+            Expression::Monomial {
+                factor: 15.,
+                variable: 'x',
+                power: 2
+            }
+        );
     }
 }
