@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rust_differential_geometry::expression::{
-    BinaryOperation, BinaryOperationType, Expression, Function,
+    BinaryOperation, BinaryOperationType, Expression, Function, Monomial,
 };
 use rust_differential_geometry::surface::Surface;
 
@@ -10,90 +10,90 @@ fn it_adds_two() {
     let torus = Surface::from_embedding(
         HashSet::from(['u', 'v']),
         vec![
-            Expression::Operation(BinaryOperation {
+            Expression::BinaryOperation(BinaryOperation {
                 operation: BinaryOperationType::Multiplication,
                 left_value: Box::new(Expression::Function {
                     function: Function::Cosine,
-                    expression: Box::new(Expression::Monomial {
+                    expression: Box::new(Expression::Monomial(Monomial {
                         factor: 1.,
                         variable: 'u',
                         power: 1,
-                    }),
+                    })),
                 }),
-                right_value: Box::new(Expression::Operation(BinaryOperation {
+                right_value: Box::new(Expression::BinaryOperation(BinaryOperation {
                     operation: BinaryOperationType::Addition,
-                    left_value: Box::new(Expression::Monomial {
+                    left_value: Box::new(Expression::Monomial(Monomial {
                         factor: 1.,
                         variable: 'R',
                         power: 1,
-                    }),
-                    right_value: Box::new(Expression::Operation(BinaryOperation {
+                    })),
+                    right_value: Box::new(Expression::BinaryOperation(BinaryOperation {
                         operation: BinaryOperationType::Multiplication,
-                        left_value: Box::new(Expression::Monomial {
+                        left_value: Box::new(Expression::Monomial(Monomial {
                             factor: 1.,
                             variable: 'r',
                             power: 1,
-                        }),
+                        })),
                         right_value: Box::new(Expression::Function {
                             function: Function::Cosine,
-                            expression: Box::new(Expression::Monomial {
+                            expression: Box::new(Expression::Monomial(Monomial {
                                 factor: 1.,
                                 variable: 'v',
                                 power: 1,
-                            }),
+                            })),
                         }),
                     })),
                 })),
             }),
-            Expression::Operation(BinaryOperation {
+            Expression::BinaryOperation(BinaryOperation {
                 operation: BinaryOperationType::Multiplication,
                 left_value: Box::new(Expression::Function {
                     function: Function::Cosine,
-                    expression: Box::new(Expression::Monomial {
+                    expression: Box::new(Expression::Monomial(Monomial {
                         factor: 1.,
                         variable: 'u',
                         power: 1,
-                    }),
+                    })),
                 }),
-                right_value: Box::new(Expression::Operation(BinaryOperation {
+                right_value: Box::new(Expression::BinaryOperation(BinaryOperation {
                     operation: BinaryOperationType::Addition,
-                    left_value: Box::new(Expression::Monomial {
+                    left_value: Box::new(Expression::Monomial(Monomial {
                         factor: 1.,
                         variable: 'R',
                         power: 1,
-                    }),
-                    right_value: Box::new(Expression::Operation(BinaryOperation {
+                    })),
+                    right_value: Box::new(Expression::BinaryOperation(BinaryOperation {
                         operation: BinaryOperationType::Multiplication,
-                        left_value: Box::new(Expression::Monomial {
+                        left_value: Box::new(Expression::Monomial(Monomial {
                             factor: 1.,
                             variable: 'r',
                             power: 1,
-                        }),
+                        })),
                         right_value: Box::new(Expression::Function {
                             function: Function::Sine,
-                            expression: Box::new(Expression::Monomial {
+                            expression: Box::new(Expression::Monomial(Monomial {
                                 factor: 1.,
                                 variable: 'v',
                                 power: 1,
-                            }),
+                            })),
                         }),
                     })),
                 })),
             }),
-            Expression::Operation(BinaryOperation {
+            Expression::BinaryOperation(BinaryOperation {
                 operation: BinaryOperationType::Multiplication,
-                left_value: Box::new(Expression::Monomial {
+                left_value: Box::new(Expression::Monomial(Monomial {
                     factor: 1.,
                     variable: 'r',
                     power: 1,
-                }),
+                })),
                 right_value: Box::new(Expression::Function {
                     function: Function::Sine,
-                    expression: Box::new(Expression::Monomial {
+                    expression: Box::new(Expression::Monomial(Monomial {
                         factor: 1.,
                         variable: 'v',
                         power: 1,
-                    }),
+                    })),
                 }),
             }),
         ],
