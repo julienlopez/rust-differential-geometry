@@ -44,6 +44,7 @@ pub struct Monomial {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     Constant(f64),
+    NamedConstant(&'static str),
     Monomial(Monomial),
     BinaryOperation(BinaryOperation),
     Function {
@@ -96,7 +97,7 @@ fn derive_operation(derivation_variable: Variable, operation: &BinaryOperation) 
 
 pub fn derive(expression: &Expression, derivation_variable: Variable) -> Expression {
     match expression {
-        Expression::Constant(_) => Expression::Constant(0.),
+        Expression::Constant(_) | Expression::NamedConstant(_) => Expression::Constant(0.),
         Expression::Monomial(m) => simplify_expression(derive_monomial(derivation_variable, m)),
         Expression::BinaryOperation(operation) => {
             simplify_expression(derive_operation(derivation_variable, operation))
@@ -227,7 +228,7 @@ fn simplify_expression(expression: Expression) -> Expression {
 impl Expression {
     pub fn variables(&self) -> HashSet<Variable> {
         match &self {
-            Expression::Constant(_) => HashSet::<Variable>::new(),
+            Expression::Constant(_) | Expression::NamedConstant(_) => HashSet::<Variable>::new(),
             Expression::Monomial(m) => HashSet::from([m.variable]),
             Expression::Function { expression, .. } => expression.variables(),
             Expression::BinaryOperation(operation) => {
@@ -247,6 +248,11 @@ mod tests {
     fn derive_constant() {
         assert_eq!(
             derive(&Expression::Constant(5.), 'x'),
+            Expression::Constant(0.)
+        );
+
+        assert_eq!(
+            derive(&Expression::NamedConstant("pi"), 'x'),
             Expression::Constant(0.)
         );
     }
