@@ -1,4 +1,6 @@
-use crate::expression::{BinaryOperation, BinaryOperationType, Expression, Monomial, Variable};
+use crate::expression::{
+    BinaryOperation, BinaryOperationType, Expression, Function, Monomial, Variable,
+};
 use crate::simplifiable::*;
 
 pub trait Derivable {
@@ -15,6 +17,10 @@ impl Derivable for Expression {
             Expression::BinaryOperation(operation) => {
                 derive_operation(derivation_variable, operation).simplify_expression()
             }
+            Expression::Function {
+                function,
+                expression,
+            } => derive_function(*function, expression, derivation_variable),
             _ => unimplemented!(),
         }
     }
@@ -59,6 +65,25 @@ fn derive_operation(derivation_variable: Variable, operation: &BinaryOperation) 
             })),
         }),
         _ => unimplemented!(),
+    }
+}
+
+fn derive_function(
+    function: Function,
+    expression: &Expression,
+    derivation_variable: Variable,
+) -> Expression {
+    if !expression.variables().contains(&derivation_variable) {
+        return Expression::Constant(0.);
+    }
+    match function {
+        Function::Cosine => {
+            unimplemented!()
+        }
+        Function::Sine => Expression::Function {
+            function: Function::Cosine,
+            expression: Box::new(expression.clone()),
+        },
     }
 }
 
@@ -198,5 +223,29 @@ mod tests {
             })
         );
         assert_eq!(product.derive('z'), Expression::Constant(0.));
+    }
+
+    #[test]
+    fn test_derive_simple_functions() {
+        let expr = Expression::Function {
+            function: Function::Sine,
+            expression: Box::new(Expression::Monomial(Monomial {
+                factor: 1.0,
+                variable: 'x',
+                power: 1,
+            })),
+        };
+        assert_eq!(expr.derive('y'), Expression::Constant(0.));
+        assert_eq!(
+            expr.derive('x'),
+            Expression::Function {
+                function: Function::Cosine,
+                expression: Box::new(Expression::Monomial(Monomial {
+                    factor: 1.0,
+                    variable: 'x',
+                    power: 1,
+                }))
+            }
+        );
     }
 }
